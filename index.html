@@ -1,0 +1,784 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Luxora - Premium Luxury Fashion</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: { 'poppins': ['Poppins', 'sans-serif'] },
+                    colors: {
+                        'dark-purple': '#1A0D2E',
+                        'purple-black': '#0F071A',
+                        'white': '#FFFFFF',
+                        'light-white': '#F8FAFC'
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        * { font-family: 'Poppins', sans-serif; }
+        body { 
+            background: linear-gradient(135deg, #0F071A 0%, #1A0D2E 50%, #2D1B69 100%);
+            color: #FFFFFF;
+        }
+        .glass { 
+            backdrop-filter: blur(25px); 
+            background: rgba(255,255,255,0.05); 
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        .glass-card { 
+            backdrop-filter: blur(20px); 
+            background: rgba(255,255,255,0.08); 
+            border: 1px solid rgba(255,255,255,0.15);
+        }
+        .glow-white { box-shadow: 0 25px 50px rgba(255,255,255,0.2); }
+        .hero-glow { box-shadow: 0 0 50px rgba(255,255,255,0.3); }
+        .btn-primary { 
+            background: linear-gradient(135deg, #1A0D2E 0%, #2D1B69 100%);
+            color: #FFFFFF !important;
+            border: 2px solid #FFFFFF;
+            transition: all 0.4s;
+        }
+        .btn-primary:hover { 
+            transform: translateY(-3px); 
+            box-shadow: 0 20px 40px rgba(255,255,255,0.3); 
+            background: linear-gradient(135deg, #2D1B69 0%, #1A0D2E 100%);
+        }
+        .cart-black { background: #0F071A !important; }
+        .admin-upload-visible {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(255,255,255,0.9);
+            color: #1A0D2E;
+            padding: 8px 16px;
+            border-radius: 50px;
+            font-weight: bold;
+            font-size: 12px;
+            z-index: 10;
+            transition: all 0.3s;
+        }
+        .admin-upload-visible:hover {
+            background: #FFFFFF;
+            transform: scale(1.1);
+        }
+        @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
+        }
+        .floating { animation: float 6s ease-in-out infinite; }
+        .category-nav { 
+            background: rgba(255,255,255,0.08);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255,255,255,0.2);
+        }
+        .category-nav button.active {
+            background: linear-gradient(135deg, #1A0D2E 0%, #2D1B69 100%);
+            box-shadow: 0 10px 30px rgba(255,255,255,0.3);
+        }
+    </style>
+</head>
+<body x-data="app()" class="min-h-screen">
+
+<!-- LOADING SCREEN -->
+<div x-show="loading" class="fixed inset-0 bg-gradient-to-br from-dark-purple to-purple-black z-50 flex items-center justify-center">
+    <div class="text-center space-y-8">
+        <div class="w-32 h-32 bg-white/20 rounded-3xl flex items-center justify-center mx-auto glass glow-white floating mb-8">
+            <i class="fas fa-crown text-5xl text-white"></i>
+        </div>
+        <h1 class="text-5xl font-black text-white">Luxora</h1>
+        <div class="flex items-center justify-center space-x-4 text-2xl">
+            <div class="w-12 h-12 bg-white/40 rounded-2xl flex items-center justify-center animate-spin">
+                <i class="fas fa-gem"></i>
+            </div>
+            <span>Loading 40+ Products...</span>
+        </div>
+    </div>
+</div>
+
+<!-- NAVBAR - DARK PURPLE -->
+<nav class="fixed top-0 w-full z-50 glass px-6 py-4 glow-white" style="background: linear-gradient(135deg, #1A0D2E 0%, #2D1B69 100%);">
+    <div class="max-w-7xl mx-auto flex items-center justify-between">
+        <div class="flex items-center space-x-4 cursor-pointer" @click="currentCategory = 'all'">
+            <div class="w-16 h-16 bg-white rounded-2xl flex items-center justify-center glow-white">
+                <i class="fas fa-crown text-xl text-dark-purple font-bold"></i>
+            </div>
+            <div>
+                <h1 class="text-3xl font-black text-white">Luxora</h1>
+                <p class="text-sm text-white/80">40+ Premium Items</p>
+            </div>
+        </div>
+
+        <!-- Search -->
+        <div class="flex-1 max-w-2xl mx-12 relative hidden lg:flex">
+            <input x-model="searchQuery" @keyup.enter="filterProducts" type="text" 
+                   placeholder="Search 40+ luxury items..." 
+                   class="w-full pl-16 pr-16 py-4 glass rounded-3xl border-2 border-white/30 focus:border-white focus:outline-none text-lg text-white placeholder-white/60 bg-white/10">
+            <i class="fas fa-search absolute left-5 top-1/2 -translate-y-1/2 text-white/60 text-xl"></i>
+        </div>
+
+        <!-- Cart & Admin -->
+        <div class="flex items-center space-x-4">
+            <!-- Cart -->
+            <div class="relative">
+                <button @click="showCartModal = true" class="p-4 glass rounded-3xl hover:bg-white/20 text-white">
+                    <i class="fas fa-shopping-cart text-2xl"></i>
+                    <span x-show="cart.length > 0" class="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full w-7 h-7 flex items-center justify-center font-bold" x-text="cart.length"></span>
+                </button>
+            </div>
+
+            <!-- Admin -->
+            <button @click="showAdminLogin = true" class="w-14 h-14 bg-white rounded-3xl flex items-center justify-center glow-white hover:scale-110">
+                <i class="fas fa-cog text-dark-purple"></i>
+            </button>
+        </div>
+    </div>
+</nav>
+
+<!-- CATEGORIES NAVBAR -->
+<div class="pt-28 pb-8 px-6" style="margin-top: 80px;">
+    <div class="max-w-7xl mx-auto">
+        <!-- UPTO 15% OFF HEADING -->
+        <div class="text-center mb-12">
+            <div class="inline-flex items-center bg-gradient-to-r from-yellow-400 to-orange-500 bg-clip-text text-transparent text-5xl font-black mb-4">
+                🔥 Upto 15% OFF on All Orders!
+            </div>
+            <p class="text-2xl text-white/90">Limited Time Offer - Shop Now!</p>
+        </div>
+        
+        <!-- CATEGORIES TABS -->
+        <div class="category-nav rounded-3xl p-2 flex flex-wrap gap-3 justify-center">
+            <template x-for="category in categories" :key="category.id">
+                <button @click="currentCategory = category.id"
+                        :class="['px-6 py-4 rounded-2xl font-bold text-lg transition-all flex items-center space-x-2', 
+                                currentCategory === category.id ? 'active text-white shadow-2xl' : 'glass text-white/70 hover:text-white hover:bg-white/20']">
+                    <i x-show="category.id === 'all'" class="fas fa-th-large"></i>
+                    <i x-show="category.id === 'dresses'" class="fas fa-female"></i>
+                    <i x-show="category.id === 'watches'" class="fas fa-watch"></i>
+                    <i x-show="category.id === 'jewelry'" class="fas fa-gem"></i>
+                    <i x-show="category.id === 'perfumes'" class="fas fa-spray-can"></i>
+                    <i x-show="category.id === 'shoes'" class="fas fa-shoe-prints"></i>
+                    <i x-show="category.id === 'bags'" class="fas fa-handbag"></i>
+                    <span x-text="category.name + ' (' + category.count + ')'"></span>
+                </button>
+            </template>
+        </div>
+    </div>
+</div>
+
+<!-- HERO WITH UPLOAD -->
+<section class="pb-32">
+    <div class="max-w-7xl mx-auto px-6 text-center">
+        <div class="relative mb-20">
+            <img id="heroImage" src="https://images.unsplash.com/photo-1524504388940-b1c1722653e1?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1974&q=80" 
+                 class="w-full max-w-4xl mx-auto h-96 lg:h-[500px] object-cover rounded-3xl hero-glow floating">
+            <!-- HERO UPLOAD BUTTON - VISIBLE FOR ADMIN -->
+            <div x-show="isAdmin" @click="uploadHero()" class="admin-upload-visible cursor-pointer">
+                📸 Upload Hero
+            </div>
+        </div>
+        
+        <div class="space-y-8 max-w-3xl mx-auto">
+            <h1 class="text-6xl lg:text-8xl font-black text-white drop-shadow-2xl">Luxury Redefined</h1>
+            <p class="text-2xl text-white/90">40+ Premium dresses, watches, jewelry & more. Free shipping!</p>
+            <button @click="scrollToProducts()" class="btn-primary text-2xl px-16 py-8 rounded-3xl font-black glow-white">
+                🛍️ Shop 40+ Items
+            </button>
+        </div>
+    </div>
+</section>
+
+<!-- PRODUCTS - 40 ITEMS -->
+<section id="products" class="max-w-7xl mx-auto px-6 pb-32">
+    <div class="flex items-center justify-between mb-20">
+        <h2 class="text-5xl font-black text-white" x-text="currentCategoryName + ' (40+ Items)'"></h2>
+        <button @click="clearFilters()" class="px-8 py-4 glass rounded-3xl text-white hover:bg-white/20">Clear All</button>
+    </div>
+    
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-8">
+        <template x-for="product in filteredProducts" :key="product.id">
+            <div class="glass-card rounded-3xl p-6 group hover:shadow-2xl transition-all border border-white/20">
+                <!-- PRODUCT IMAGE WITH UPLOAD -->
+                <div class="relative h-64 rounded-2xl overflow-hidden mb-6 group-hover:scale-105 transition-all">
+                    <img x-show="product.image" :src="product.image" class="w-full h-full object-cover">
+                    <div x-show="!product.image" class="w-full h-full bg-gradient-to-br from-gray-800 to-gray-900 flex items-center justify-center">
+                        <i class="fas fa-image text-5xl text-white/30"></i>
+                    </div>
+                    
+                    <!-- ADMIN UPLOAD - SUPER VISIBLE -->
+                    <div x-show="isAdmin" @click="uploadPhoto(product)" 
+                         class="admin-upload-visible cursor-pointer absolute top-4 right-4 bg-white text-dark-purple px-4 py-2 rounded-full text-sm font-bold hover:bg-light-white transform hover:scale-110 transition-all z-20">
+                        📸 Upload
+                    </div>
+                </div>
+
+                <!-- DETAILS -->
+                <div class="space-y-4">
+                    <h3 class="text-2xl font-bold text-white" x-text="product.name"></h3>
+                    <div class="text-3xl font-black text-white" x-text="'₹' + product.price"></div>
+                    <p class="text-white/70 text-sm line-clamp-2" x-text="product.description"></p>
+                    
+                    <!-- QUICK REVIEW SECTION -->
+                    <div class="bg-white/10 rounded-2xl p-4 border border-white/20">
+                        <div class="flex items-center space-x-2 mb-2">
+                            <div class="flex text-yellow-400">
+                                <template x-for="n in 5" :key="n"><i class="fas fa-star"></i></template>
+                            </div>
+                            <span class="text-white/80 font-bold" x-text="product.reviews + ' reviews'"></span>
+                        </div>
+                        <p class="text-xs text-white/70" x-html="product.quickReview"></p>
+                    </div>
+
+                    <!-- ADD TO CART - DUPLICATE ALLOWED -->
+                    <button @click="addToCart(product)" 
+                            class="w-full btn-primary py-4 px-6 rounded-2xl font-bold text-lg flex items-center justify-center space-x-2 hover:shadow-xl">
+                        <i class="fas fa-shopping-cart"></i>
+                        <span>Add to Cart</span>
+                    </button>
+                </div>
+            </div>
+        </template>
+    </div>
+</section>
+
+<!-- FOOTER -->
+<footer class="bg-gradient-to-r from-dark-purple to-purple-black pt-32 pb-12 border-t border-white/20">
+    <div class="max-w-7xl mx-auto px-6">
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12 mb-16">
+            <div>
+                <div class="flex items-center space-x-4 mb-8">
+                    <div class="w-16 h-16 bg-white rounded-2xl flex items-center justify-center glow-white">
+                        <i class="fas fa-crown text-xl text-dark-purple font-bold"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-3xl font-black text-white">Luxora</h3>
+                        <p class="text-white/70">Premium Luxury Fashion</p>
+                    </div>
+                </div>
+                <p class="text-white/70 mb-6">Discover 40+ premium dresses, watches, jewelry & more. Free shipping on all orders!</p>
+                <div class="flex space-x-4">
+                    <a href="#" class="w-12 h-12 bg-white/20 rounded-2xl flex items-center justify-center hover:bg-white/40 transition-all">
+                        <i class="fab fa-instagram text-2xl"></i>
+                    </a>
+                    <a href="#" class="w-12 h-12 bg-white/20 rounded-2xl flex items-center justify-center hover:bg-white/40 transition-all">
+                        <i class="fab fa-facebook text-2xl"></i>
+                    </a>
+                    <a href="#" class="w-12 h-12 bg-white/20 rounded-2xl flex items-center justify-center hover:bg-white/40 transition-all">
+                        <i class="fab fa-twitter text-2xl"></i>
+                    </a>
+                </div>
+            </div>
+            
+            <div>
+                <h4 class="text-2xl font-bold text-white mb-8">Quick Links</h4>
+                <ul class="space-y-4">
+                    <li><a href="#" class="text-white/70 hover:text-white transition-all">All Products</a></li>
+                    <li><a href="#" class="text-white/70 hover:text-white transition-all" @click="currentCategory='dresses'">Dresses</a></li>
+                    <li><a href="#" class="text-white/70 hover:text-white transition-all" @click="currentCategory='watches'">Watches</a></li>
+                    <li><a href="#" class="text-white/70 hover:text-white transition-all" @click="currentCategory='jewelry'">Jewelry</a></li>
+                </ul>
+            </div>
+            
+            <div>
+                <h4 class="text-2xl font-bold text-white mb-8">Categories</h4>
+                <ul class="space-y-4">
+                    <li><a href="#" class="text-white/70 hover:text-white transition-all" @click="currentCategory='perfumes'">Perfumes</a></li>
+                    <li><a href="#" class="text-white/70 hover:text-white transition-all" @click="currentCategory='shoes'">Shoes</a></li>
+                    <li><a href="#" class="text-white/70 hover:text-white transition-all" @click="currentCategory='bags'">Bags</a></li>
+                    <li><a href="#" class="text-white/70 hover:text-white transition-all">New Arrivals</a></li>
+                </ul>
+            </div>
+            
+            <div>
+                <h4 class="text-2xl font-bold text-white mb-8">Contact Info</h4>
+                <div class="space-y-4 text-white/70">
+                    <div class="flex items-center space-x-3">
+                        <i class="fas fa-phone text-2xl text-yellow-400"></i>
+                        <span>+91 98765 43210</span>
+                    </div>
+                    <div class="flex items-center space-x-3">
+                        <i class="fas fa-envelope text-2xl text-yellow-400"></i>
+                        <span>hello@luxora.com</span>
+                    </div>
+                    <div class="flex items-center space-x-3">
+                        <i class="fas fa-map-marker-alt text-2xl text-yellow-400"></i>
+                        <span>Mumbai, India</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="glass pt-12 pb-8 rounded-3xl mt-16 border-white/20">
+            <div class="text-center">
+                <p class="text-white/70 mb-4">© 2024 Luxora. All rights reserved. | Upto 15% OFF on all orders!</p>
+                <div class="flex flex-wrap justify-center items-center space-x-8 text-sm text-white/60">
+                    <span>Free Shipping</span>
+                    <span>Secure Payment</span>
+                    <span>24/7 Support</span>
+                    <span>Easy Returns</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</footer>
+
+<!-- CART MODAL - BLACK BACKGROUND -->
+<div x-show="showCartModal" x-transition class="fixed inset-0 bg-black/90 z-50 flex items-center justify-center p-6">
+    <div class="glass-card rounded-4xl p-8 max-w-4xl w-full max-h-[90vh] overflow-y-auto cart-black border-white/30">
+        <div class="flex justify-between items-center mb-8">
+            <h2 class="text-4xl font-black text-white">🛒 Shopping Cart (x<span x-text="cart.length"></span>)</h2>
+            <button @click="showCartModal=false" class="text-3xl text-white hover:text-gray-300">&times;</button>
+        </div>
+
+        <div class="space-y-6 mb-12">
+            <template x-for="item in cart" :key="item.id + '_' + item.cartIndex">
+                <div class="glass-card p-6 rounded-3xl flex items-center space-x-6 cart-black border-white/20">
+                    <img :src="item.image || 'https://via.placeholder.com/100x100/333/fff?text=IMG'" class="w-24 h-24 rounded-2xl object-cover">
+                    <div class="flex-1">
+                        <h4 class="text-2xl font-bold text-white mb-2" x-text="item.name"></h4>
+                        <p class="text-3xl font-black text-white mb-4" x-text="'₹' + item.price"></p>
+                        <div class="flex items-center space-x-4">
+                            <div class="flex items-center space-x-3 bg-white/10 px-4 py-2 rounded-2xl">
+                                <button @click="updateQuantity(item.cartIndex, -1)" class="text-2xl font-bold text-white hover:text-gray-300">-</button>
+                                <span class="w-8 text-2xl font-black text-white text-center" x-text="item.quantity"></span>
+                                <button @click="updateQuantity(item.cartIndex, 1)" class="text-2xl font-bold text-white hover:text-gray-300">+</button>
+                            </div>
+                            <button @click="removeFromCart(item.cartIndex)" class="p-3 text-red-400 hover:text-red-300 text-xl">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </template>
+        </div>
+
+        <div x-show="cart.length > 0" class="space-y-6 pt-8 border-t border-white/30">
+            <div class="flex justify-between text-2xl font-bold text-white">
+                <span>Subtotal:</span>
+                <span>₹<span x-text="getSubtotal()"></span></span>
+            </div>
+            <div x-show="getDiscount() > 0" class="flex justify-between text-2xl font-bold text-green-400">
+                <span>15% Discount:</span>
+                <span>-₹<span x-text="getDiscount()"></span></span>
+            </div>
+            <div class="flex justify-between text-4xl font-black text-white">
+                <span>Total:</span>
+                <span>₹<span x-text="getTotal()"></span></span>
+            </div>
+            <button @click="showCustomerForm = true; showCartModal = false" 
+                    class="w-full btn-primary text-2xl py-6 px-8 rounded-3xl font-black glow-white">
+                <i class="fas fa-credit-card mr-3"></i>Checkout Now
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- CUSTOMER FORM - 100% FIXED -->
+<div x-show="showCustomerForm" x-transition class="fixed inset-0 bg-black/90 z-50 flex items-center justify-center p-6">
+    <div class="glass-card rounded-4xl p-12 max-w-2xl w-full cart-black border-white/30">
+        <div class="flex justify-between items-center mb-12">
+            <h2 class="text-4xl font-black text-white">📋 Customer Details</h2>
+            <button @click="showCustomerForm=false" class="text-4xl text-white hover:text-gray-300">&times;</button>
+        </div>
+
+        <form @submit.prevent="placeOrder" class="space-y-6">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                    <label class="block text-xl font-bold text-white mb-3">Full Name *</label>
+                    <input x-model="customerInfo.name" required type="text" class="w-full p-4 rounded-2xl bg-white/10 border border-white/30 text-white text-xl focus:border-white focus:outline-none">
+                </div>
+                <div>
+                    <label class="block text-xl font-bold text-white mb-3">Phone *</label>
+                    <input x-model="customerInfo.phone" required type="tel" class="w-full p-4 rounded-2xl bg-white/10 border border-white/30 text-white text-xl focus:border-white focus:outline-none">
+                </div>
+            </div>
+            <div>
+                <label class="block text-xl font-bold text-white mb-3">Email *</label>
+                <input x-model="customerInfo.email" required type="email" class="w-full p-4 rounded-2xl bg-white/10 border border-white/30 text-white text-xl focus:border-white focus:outline-none">
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                    <label class="block text-xl font-bold text-white mb-3">Address *</label>
+                    <input x-model="customerInfo.address" required type="text" class="w-full p-4 rounded-2xl bg-white/10 border border-white/30 text-white text-xl focus:border-white">
+                </div>
+                <div>
+                    <label class="block text-xl font-bold text-white mb-3">City *</label>
+                    <input x-model="customerInfo.city" required type="text" class="w-full p-4 rounded-2xl bg-white/10 border border-white/30 text-white text-xl focus:border-white">
+                </div>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                    <label class="block text-xl font-bold text-white mb-3">State *</label>
+                    <input x-model="customerInfo.state" required type="text" class="w-full p-4 rounded-2xl bg-white/10 border border-white/30 text-white text-xl focus:border-white">
+                </div>
+                <div>
+                    <label class="block text-xl font-bold text-white mb-3">Pincode *</label>
+                    <input x-model="customerInfo.pincode" required type="number" class="w-full p-4 rounded-2xl bg-white/10 border border-white/30 text-white text-xl focus:border-white">
+                </div>
+            </div>
+
+            <div class="pt-8 border-t border-white/30 space-y-6">
+                <div class="flex justify-between text-3xl font-black text-white">
+                    <span>TOTAL:</span>
+                    <span>₹<span x-text="getTotal()"></span></span>
+                </div>
+                <button type="submit" class="w-full btn-primary text-2xl py-8 px-12 rounded-3xl font-black glow-white">
+                    <i class="fas fa-lock mr-3"></i>PLACE ORDER
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- ADMIN LOGIN & PANEL -->
+<div x-show="showAdminLogin" x-transition class="fixed inset-0 bg-black/90 z-50 flex items-center justify-center p-6">
+    <div class="glass-card rounded-4xl p-12 w-full max-w-md cart-black">
+        <h2 class="text-4xl font-black text-white mb-8 text-center">🔐 Admin Login</h2>
+        <div x-show="!isAdmin">
+            <input x-model="adminPass" type="password" placeholder="Enter Password" 
+                   @keyup.enter="loginAdmin()" class="w-full p-6 rounded-2xl bg-white/10 border border-white/30 text-white text-2xl mb-8 text-center">
+            <button @click="loginAdmin()" class="w-full btn-primary py-6 px-8 rounded-3xl font-black text-xl">Login</button>
+            <p class="text-center mt-4 text-white/70 text-sm">Hint: luxora2024</p>
+        </div>
+        <div x-show="isAdmin" class="text-center">
+            <i class="fas fa-crown text-6xl text-yellow-400 mb-4"></i>
+            <h3 class="text-3xl font-bold text-white mb-4">Admin Access Granted! 👑</h3>
+            <button @click="showAdminPanel=true; showAdminLogin=false" class="btn-primary py-4 px-8 rounded-3xl font-bold mb-4">Admin Panel</button>
+            <button @click="logoutAdmin()" class="w-full text-red-400 hover:text-red-300 text-xl font-bold py-4">Logout</button>
+        </div>
+    </div>
+</div>
+
+<!-- ADMIN PANEL -->
+<div x-show="showAdminPanel" x-transition class="fixed inset-0 bg-black/95 z-[9999] flex items-center justify-center p-6 overflow-y-auto">
+    <div class="glass-card rounded-4xl p-12 max-w-6xl w-full max-h-[95vh] cart-black">
+        <div class="flex justify-between items-center mb-12">
+            <h2 class="text-5xl font-black text-white">⚙️ Admin Dashboard</h2>
+            <button @click="showAdminPanel=false" class="text-4xl text-white hover:text-gray-300">&times;</button>
+        </div>
+
+        <div class="grid grid-cols-2 lg:grid-cols-4 gap-8 mb-12">
+            <div class="glass-card p-8 rounded-3xl text-center cart-black">
+                <div class="text-5xl font-black text-white mb-4" x-text="totalProducts"></div>
+                <div class="text-xl text-white/80">Products</div>
+            </div>
+            <div class="glass-card p-8 rounded-3xl text-center cart-black">
+                <div class="text-5xl font-black text-white mb-4" x-text="cart.length"></div>
+                <div class="text-xl text-white/80">Cart Items</div>
+            </div>
+            <div class="glass-card p-8 rounded-3xl text-center cart-black">
+                <div class="text-5xl font-black text-white mb-4" x-text="totalOrders"></div>
+                <div class="text-xl text-white/80">Orders</div>
+            </div>
+            <div class="glass-card p-8 rounded-3xl text-center cart-black">
+                <div class="text-5xl font-black text-white mb-4" x-text="revenue"></div>
+                <div class="text-xl text-white/80">Revenue ₹</div>
+            </div>
+        </div>
+
+        <h3 class="text-3xl font-black text-white mb-8">📋 Recent Orders</h3>
+        <div class="space-y-4 max-h-96 overflow-y-auto">
+            <template x-for="order in recentOrders.slice(0,10)" :key="order.id">
+                <div class="glass-card p-6 rounded-3xl cart-black border-white/20">
+                    <div class="flex justify-between items-start mb-4">
+                        <div>
+                            <h4 class="text-2xl font-bold text-white" x-text="order.customer"></h4>
+                            <p class="text-lg text-white/80" x-text="'₹' + order.total + ' | Items: ' + order.items.length"></p>
+                        </div>
+                        <span class="px-4 py-2 bg-green-500/20 text-green-400 rounded-full font-bold" x-text="order.status"></span>
+                    </div>
+                    <p class="text-sm text-white/70" x-text="order.customerInfo.address + ', ' + order.customerInfo.city"></p>
+                </div>
+            </template>
+        </div>
+    </div>
+</div>
+
+<script>
+function app() {
+    return {
+        loading: true,
+        currentCategory: 'all',
+        currentCategoryName: 'All Products',
+        searchQuery: '',
+        cart: [],
+        orders: [],
+        isAdmin: false,
+        showCartModal: false,
+        showCustomerForm: false,
+        showAdminLogin: false,
+        showAdminPanel: false,
+        adminPass: '',
+        customerInfo: {
+            name: '', phone: '', email: '', address: '', city: '', state: '', pincode: ''
+        },
+        nextCartIndex: 0,
+        adminPassword: 'luxora2024',
+
+        // 40+ FULL PRODUCTS WITH QUICK REVIEWS
+        categories: [
+            {id: 'all', name: 'All Products', count: 0},
+            {id: 'dresses', name: 'Dresses', count: 0},
+            {id: 'watches', name: 'Watches', count: 0},
+            {id: 'jewelry', name: 'Jewelry', count: 0},
+            {id: 'perfumes', name: 'Perfumes', count: 0},
+            {id: 'shoes', name: 'Shoes', count: 0},
+            {id: 'bags', name: 'Bags', count: 0}
+        ],
+
+        products: [
+            // DRESSES (12)
+            {id:1, category:'dresses', name:'Royal Purple Gown', price:18500, description:'Silk chiffon with crystals', reviews:356, image:'https://images.unsplash.com/photo-1568252542512-9fe8fe9c87bb?q=80&w=500', quickReview:'"Absolutely stunning! Perfect for weddings. Fits like a dream. 5/5" - Priya S.<br>Material: 100% Silk | Size: M | Ships in 2 days'},
+            {id:2, category:'dresses', name:'Emerald Saree', price:24500, description:'Banarasi silk zari work', reviews:189, image:'', quickReview:'"Gorgeous color & quality! Got 100+ compliments. Worth every penny!" - Anjali K.<br>Weight: 650g | Pure Silk | Festive Ready'},
+            {id:3, category:'dresses', name:'Black Velvet Lehenga', price:32500, description:'Heavy embroidery festive', reviews:298, image:'', quickReview:'"Heavy & luxurious! Perfect bridal wear. 10/10 recommend" - Neha R.<br>22K Gold Work | 3 Pieces | Free Blouse'},
+            {id:4, category:'dresses', name:'White Anarkali', price:19800, description:'Georgette sequin party', reviews:167, image:'', quickReview:'"Party perfect! Shines beautifully. True to size" - Riya M.<br>Sequin Work | Lightweight | Easy Returns'},
+            {id:5, category:'dresses', name:'Red Bridal Lehenga', price:125000, description:'Diamond work bridal', reviews:89, image:'', quickReview:'"Dream bridal lehenga! Diamonds sparkle amazingly" - Simran P.<br>1.2ct Diamonds | Custom Size | Lifetime Guarantee'},
+            {id:6, category:'dresses', name:'Pink Sharara', price:28500, description:'Chanderi silk festive', reviews:234, image:'', quickReview:'"Love the flow & comfort! Perfect festive look" - Kavya S.<br>Hand Embroidered | Dupatta Included | 3 Colors'},
+            {id:7, category:'dresses', name:'Blue Gown', price:45000, description:'Satin evening wear', reviews:156, image:'', quickReview:'"Elegant & sophisticated! Got so many compliments" - Divya N.<br>Italian Satin | Lined | Formal Events'},
+            {id:8, category:'dresses', name:'Golden Saree', price:38500, description:'Tissue silk party', reviews:278, image:'', quickReview:'"Luxurious feel! Perfect for parties & functions" - Pooja G.<br>Tissue Silk | Zari Border | Ready to Wear'},
+            {id:9, category:'dresses', name:'Green Salwar', price:16500, description:'Chiffon embroidered', reviews:345, image:'', quickReview:'"Comfortable & stylish! Daily wear favorite" - Shruti B.<br>Breathable Fabric | 3 Sizes | Washable'},
+            {id:10, category:'dresses', name:'Maroon Lehenga', price:42500, description:'Velvet bridal wear', reviews:198, image:'', quickReview:'"Rich velvet texture! Perfect for weddings" - Meera J.<br>Velvet + Net | Heavy Dupatta | Bridal Collection'},
+            {id:11, category:'dresses', name:'Peach Anarkali', price:23500, description:'Net sequence work', reviews:267, image:'', quickReview:'"Soft peach color! Flows beautifully when walking" - Tanya V.<br>Net Fabric | Sequence Work | Party Wear'},
+            {id:12, category:'dresses', name:'Silver Gown', price:32500, description:'Georgette formal', reviews:145, image:'', quickReview:'"Perfect formal gown! Elegant & comfortable" - Sonia K.<br>Georgette | Fully Lined | Office Events'},
+
+            // WATCHES (8)
+            {id:13, category:'watches', name:'Rolex Submariner', price:125000, description:'Swiss 300m dive watch', reviews:456, image:'', quickReview:'"Authentic Rolex! Keeps perfect time. Investment piece" - Raj K.<br>300m Water Resistant | Ceramic Bezel | 2yr Warranty'},
+            {id:14, category:'watches', name:'Omega Seamaster', price:145000, description:'Co-axial professional', reviews:167, image:'', quickReview:'"Smooth movement! Perfect daily luxury watch" - Arjun S.<br>Co-Axial | 150m WR | James Bond Edition'},
+            {id:15, category:'watches', name:'Patek Philippe', price:850000, description:'Complicated luxury', reviews:78, image:'', quickReview:'"Masterpiece! Heirloom quality. Perfect condition" - Vikram M.<br>Manual Wind | Complications | Certificate'},
+            {id:16, category:'watches', name:'Audemars Piguet', price:325000, description:'Royal Oak steel', reviews:234, image:'', quickReview:'"Iconic design! Perfect size & weight" - Rohan P.<br>41mm Steel | Automatic | Box & Papers'},
+            {id:17, category:'watches', name:'Cartier Tank', price:185000, description:'Classic rectangular', reviews:345, image:'', quickReview:'"Timeless elegance! Perfect dress watch" - Aryan G.<br>Manual Wind | Gold Plated | Slim Profile'},
+            {id:18, category:'watches', name:'IWC Portugieser', price:245000, description:'Chronograph elegance', reviews:189, image:'', quickReview:'"Beautiful chronograph! Perfect proportions" - Sameer R.<br>Chronograph | 7 Day Power | Leather Strap'},
+            {id:19, category:'watches', name:'Tag Heuer Monaco', price:125000, description:'Racing chronograph', reviews:278, image:'', quickReview:'"Steve McQueen iconic! Perfect racer watch" - Nikhil J.<br>Square Case | Chrono | Blue Dial'},
+            {id:20, category:'watches', name:'Breitling Navitimer', price:165000, description:'Pilot chronograph', reviews:156, image:'', quickReview:'"Aviation legend! Slide rule works perfectly" - Kapil S.<br>43mm | Chrono | Pilot Strap'},
+
+            // JEWELRY (8)
+            {id:21, category:'jewelry', name:'Diamond Necklace', price:95000, description:'1.25ct solitaire set', reviews:234, image:'', quickReview:'"Breathtaking sparkle! Perfect for special occasions" - Ritu S.<br>1.25ct VS1 Diamonds | 18K White Gold | Certified'},
+            {id:22, category:'jewelry', name:'Gold Kundan Set', price:78500, description:'22K polki bridal', reviews:345, image:'', quickReview:'"Traditional beauty! Perfect bridal necklace" - Deepika M.<br>22K Gold | Polki Diamonds | 3 Pcs Set'},
+            {id:23, category:'jewelry', name:'Emerald Earrings', price:125000, description:'5ct natural emeralds', reviews:167, image:'', quickReview:'"Stunning green color! Lightweight & comfortable" - Nisha K.<br>5ct Natural Emeralds | Platinum | Drop Style'},
+            {id:24, category:'jewelry', name:'Ruby Bracelet', price:85000, description:'Burmese rubies 18K', reviews:278, image:'', quickReview:'"Rich ruby color! Perfect stackable bracelet" - Payal R.<br>Burmese Rubies | 18K Rose Gold | Adjustable'},
+            {id:25, category:'jewelry', name:'Pearl Necklace', price:45000, description:'South sea pearls', reviews:189, image:'', quickReview:'"Elegant & classy! Perfect for formal wear" - Mona P.<br>South Sea Pearls | 18" Length | Clasp Included'},
+            {id:26, category:'jewelry', name:'Diamond Ring', price:325000, description:'2ct solitaire', reviews:456, image:'', quickReview:'"Perfect engagement ring! Dazzling sparkle" - Priyanka S.<br>2ct GIA Certified | Platinum | Size 7'},
+            {id:27, category:'jewelry', name:'Gold Bangles', price:125000, description:'22K antique finish', reviews:234, image:'', quickReview:'"Beautiful antique finish! Perfect wedding gift" - Anu V.<br>22K Gold | 2.4mm Thick | Pair'},
+            {id:28, category:'jewelry', name:'Sapphire Pendant', price:78500, description:'Ceylon blue sapphire', reviews:167, image:'', quickReview:'"Deep blue sapphire! Everyday luxury piece" - Tara N.<br>3ct Ceylon Sapphire | 18K White Gold | Chain Incl'},
+
+            // PERFUMES (6)
+            {id:29, category:'perfumes', name:'Creed Aventus', price:28500, description:'Men 100ml 12hrs', reviews:678, image:'', quickReview:'"Beast mode! 12+ hours longevity. King of fragrances" - Amit K.<br>100ml | Top: Pineapple | 4.9/5 Rating'},
+            {id:30, category:'perfumes', name:'Tom Ford Oud Wood', price:35600, description:'Unisex 16hrs', reviews:456, image:'', quickReview:'"Luxurious oud scent! Perfect for evenings" - Karan S.<br>100ml | Unisex | 16hr Longevity'},
+            {id:31, category:'perfumes', name:'Dior Sauvage', price:14500, description:'Men 100ml', reviews:789, image:'', quickReview:'"Fresh & masculine! Office to evening perfect" - Rahul M.<br>100ml EDT | Fresh Spicy | Best Seller'},
+            {id:32, category:'perfumes', name:'Chanel No.5', price:18500, description:'Women classic', reviews:567, image:'', quickReview:'"Timeless classic! Elegant & sophisticated" - Natasha R.<br>100ml EDP | Floral Aldehyde | Iconic'},
+            {id:33, category:'perfumes', name:'Versace Eros', price:12500, description:'Men 100ml', reviews:345, image:'', quickReview:'"Sweet & seductive! Perfect date night scent" - Vishal P.<br>100ml EDT | Mint + Vanilla | Long Lasting'},
+            {id:34, category:'perfumes', name:'YSL Libre', price:16500, description:'Women floral', reviews:278, image:'', quickReview:'"Fresh floral! Perfect for spring/summer" - Kriti J.<br>100ml EDP | Lavender + Orange Blossom'},
+
+            // SHOES (4)
+            {id:35, category:'shoes', name:'Gucci Loafers', price:45800, description:'Italian leather', reviews:123, image:'', quickReview:'"Premium leather! Comfortable all day wear" - Rohit G.<br>Italian Leather | Size 9 | Made in Italy'},
+            {id:36, category:'shoes', name:'Prada Suede Boots', price:68500, description:'Handcrafted suede', reviews:234, image:'', quickReview:'"Luxurious suede! Perfect winter boots" - Manish K.<br>Handcrafted | Waterproof | Size 10'},
+            {id:37, category:'shoes', name:'Louis Vuitton Sneakers', price:125000, description:'Monogram canvas', reviews:167, image:'', quickReview:'"Iconic LV monogram! Super comfortable" - Siddharth S.<br>Monogram Canvas | White Sole | Size 8'},
+            {id:38, category:'shoes', name:'Jimmy Choo Heels', price:85000, description:'Crystal embellished', reviews:278, image:'', quickReview:'"Crystal sparkle! Walk comfortably all night" - Neha P.<br>4" Heel | Crystals | Red Carpet Ready'},
+
+            // BAGS (4)
+            {id:39, category:'bags', name:'Hermes Birkin', price:1250000, description:'Togo leather 25cm', reviews:89, image:'', quickReview:'"Dream bag! Perfect condition investment piece" - Rhea K.<br>25cm Togo Leather | Gold Hardware | Serial #456'},
+            {id:40, category:'bags', name:'Chanel Classic Flap', price:785000, description:'Lambskin medium', reviews:234, image:'', quickReview:'"Timeless classic! Perfect everyday luxury" - Malika S.<br>Medium Lambskin | CC Lock | Authenticity Card'},
+            {id:41, category:'bags', name:'Louis Vuitton Neverfull', price:145000, description:'Monogram canvas', reviews:456, image:'', quickReview:'"Spacious & stylish! Perfect weekend bag" - Sonia R.<br>Monogram Canvas | PM Size | Dust Bag Included'},
+            {id:42, category:'bags', name:'Gucci Dionysus', price:245000, description:'Suede shoulder bag', reviews:345, image:'', quickReview:'"Beautiful suede texture! Perfect shoulder bag" - Anushka M.<br>Suede | Mini Size | Tiger Head Closure'}
+        ],
+
+        get filteredProducts() {
+            let filtered = this.products.filter(p => {
+                const catMatch = this.currentCategory === 'all' || p.category === this.currentCategory;
+                const searchMatch = !this.searchQuery || 
+                    p.name.toLowerCase().includes(this.searchQuery.toLowerCase()) ||
+                    p.description.toLowerCase().includes(this.searchQuery.toLowerCase());
+                return catMatch && searchMatch;
+            });
+            this.categories.forEach(cat => {
+                cat.count = this.products.filter(p => cat.id === 'all' || p.category === cat.id).length;
+            });
+            return filtered;
+        },
+
+        get totalProducts() { return this.products.length; },
+        get totalOrders() { return this.orders.length; },
+        get recentOrders() { return this.orders.slice().sort((a,b) => b.timestamp - a.timestamp); },
+        get revenue() { return this.orders.reduce((sum, o) => sum + o.total, 0); },
+        getSubtotal() { return this.cart.reduce((sum, item) => sum + (item.price * item.quantity), 0); },
+        getDiscount() { return this.getSubtotal() >= 10000 ? Math.round(this.getSubtotal() * 0.15) : 0; },
+        getTotal() { return this.getSubtotal() - this.getDiscount(); },
+
+        init() {
+            this.loadData();
+            setTimeout(() => this.loading = false, 2000);
+        },
+
+        scrollToProducts() {
+            document.getElementById('products').scrollIntoView({behavior: 'smooth'});
+        },
+
+        // FIXED: DUPLICATE CART ITEMS ALLOWED
+        addToCart(product) {
+            const cartItem = {
+                ...product,
+                cartIndex: this.nextCartIndex++,
+                quantity: 1
+            };
+            this.cart.push(cartItem);
+            this.saveData();
+            alert(`✅ ${product.name} added to cart! (Duplicate allowed)`);
+        },
+
+        updateQuantity(cartIndex, change) {
+            const item = this.cart.find(item => item.cartIndex === cartIndex);
+            if (item) {
+                item.quantity = Math.max(1, item.quantity + change);
+                if (item.quantity === 0) {
+                    this.removeFromCart(cartIndex);
+                } else {
+                    this.saveData();
+                }
+            }
+        },
+
+        removeFromCart(cartIndex) {
+            this.cart = this.cart.filter(item => item.cartIndex !== cartIndex);
+            this.saveData();
+        },
+
+        // FIXED: FORM 100% WORKING
+        placeOrder() {
+            if (!this.customerInfo.name || !this.customerInfo.phone || !this.customerInfo.email || 
+                !this.customerInfo.address || !this.customerInfo.city || !this.customerInfo.state || !this.customerInfo.pincode) {
+                alert('❌ Please fill all fields!');
+                return;
+            }
+
+            if (this.cart.length === 0) {
+                alert('❌ Cart is empty!');
+                return;
+            }
+
+            const order = {
+                id: 'LUX' + Date.now().toString().slice(-6),
+                items: [...this.cart],
+                customer: this.customerInfo.name,
+                customerInfo: {...this.customerInfo},
+                subtotal: this.getSubtotal(),
+                discount: this.getDiscount(),
+                total: this.getTotal(),
+                timestamp: Date.now(),
+                status: 'completed'
+            };
+
+            this.orders.unshift(order);
+            this.cart = [];
+            this.customerInfo = {name:'', phone:'', email:'', address:'', city:'', state:'', pincode:''};
+            
+            this.saveData();
+            
+            alert(`🎉 ORDER PLACED!\n\nID: ${order.id}\nTotal: ₹${order.total}\nCustomer: ${order.customer}\n\nCheck Admin Panel!`);
+            this.showCustomerForm = false;
+        },
+
+        // PHOTO UPLOAD - HERO & PRODUCTS
+        uploadPhoto(product) {
+            if (!this.isAdmin) return;
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = 'image/*';
+            input.onchange = (e) => {
+                const file = e.target.files[0];
+                if (file && file.size < 8*1024*1024) {
+                    const reader = new FileReader();
+                    reader.onload = (ev) => {
+                        const idx = this.products.findIndex(p => p.id === product.id);
+                        if (idx !== -1) {
+                            this.products[idx].image = ev.target.result;
+                            this.saveData();
+                            alert('✅ Product photo uploaded!');
+                        }
+                    };
+                    reader.readAsDataURL(file);
+                }
+            };
+            input.click();
+        },
+
+        // HERO UPLOAD
+        uploadHero() {
+            if (!this.isAdmin) return;
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = 'image/*';
+            input.onchange = (e) => {
+                const file = e.target.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = (ev) => {
+                        document.getElementById('heroImage').src = ev.target.result;
+                        alert('✅ Hero image uploaded!');
+                    };
+                    reader.readAsDataURL(file);
+                }
+            };
+            input.click();
+        },
+
+        loginAdmin() {
+            if (this.adminPass === this.adminPassword) {
+                this.isAdmin = true;
+                localStorage.setItem('luxora_admin', 'true');
+                this.showAdminLogin = false;
+                alert('✅ Admin login successful! 👑');
+            } else {
+                alert('❌ Wrong password!');
+                this.adminPass = '';
+            }
+        },
+
+        logoutAdmin() {
+            this.isAdmin = false;
+            localStorage.removeItem('luxora_admin');
+            this.showAdminLogin = false;
+        },
+
+        clearFilters() {
+            this.currentCategory = 'all';
+            this.currentCategoryName = 'All Products';
+            this.searchQuery = '';
+        },
+
+        saveData() {
+            localStorage.setItem('luxora_shop', JSON.stringify({
+                cart: this.cart,
+                orders: this.orders,
+                isAdmin: this.isAdmin,
+                nextCartIndex: this.nextCartIndex,
+                products: this.products
+            }));
+        },
+
+        loadData() {
+            const data = localStorage.getItem('luxora_shop');
+            if (data) {
+                const parsed = JSON.parse(data);
+                if (parsed.cart) this.cart = parsed.cart;
+                if (parsed.orders) this.orders = parsed.orders;
+                if (parsed.isAdmin !== undefined) this.isAdmin = parsed.isAdmin;
+                if (parsed.nextCartIndex) this.nextCartIndex = parsed.nextCartIndex;
+                if (parsed.products) this.products = parsed.products;
+            }
+            if (localStorage.getItem('luxora_admin') === 'true') this.isAdmin = true;
+        }
+    }
+}
+</script>
+
+</body>
+</html>
